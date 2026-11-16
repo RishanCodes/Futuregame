@@ -2,7 +2,7 @@
 import {
   MATS, QUALITY, QUALITY_BONUS, RARITIES, GRADES, ELEMENTS, BLUEPRINTS, TIER_MULT, COMPONENTS, ENCHANTS, TRAITS,
   REGIONS, LOCATIONS, ENEMIES, EVENTS, QUESTS, TALENTS, SMITH_UNLOCKS, SKILLS, MASTERY_PASSIVES, FORGE_UPGRADES,
-  PICKAXES, SICKLES, LENSES, SMELT, CONSUMABLES, ACHIEVEMENTS, LEGACY_PERKS, CATEGORIES,
+  PICKAXES, SICKLES, LENSES, SMELT, CONSUMABLES, ACHIEVEMENTS, LEGACY_PERKS, CATEGORIES, CODES,
 } from './data.js';
 
 export const SAVE_VERSION = 1;
@@ -51,7 +51,7 @@ export function newGame(legacy) {
     records: lg.records || { best: {}, history: [] },
     legacy: { lp: lg.lp, spent: lg.spent, perks: lg.perks, count: lg.count, hall: lg.hall, everBosses: lg.everBosses },
     settings: { reducedMotion: false, combatTiming: true, relaxed: false, sound: true, trial: false, confirmSalvage: true },
-    battle: null, log: [], tutorial: 1,
+    battle: null, log: [], tutorial: 1, codes: {},
   };
   for (const id in LOCATIONS) { if (LOCATIONS[id].start) s.world.seen[id] = true; }
   // starting kit
@@ -86,7 +86,7 @@ export function migrate(obj) {
   const fill = (dst, src) => { for (const k in src) { if (dst[k] === undefined) dst[k] = src[k]; else if (src[k] && typeof src[k] === 'object' && !Array.isArray(src[k]) && dst[k] && typeof dst[k] === 'object' && !Array.isArray(dst[k])) fill(dst[k], src[k]); } };
   if (!obj.legacy) obj.legacy = base.legacy;
   for (const k of ['player', 'smith', 'mastery', 'world', 'tools', 'stats', 'codex', 'records', 'settings', 'legacy']) { if (!obj[k]) obj[k] = base[k]; else fill(obj[k], base[k]); }
-  for (const k of ['quests', 'bosses', 'upgrades', 'achievements', 'consumables']) if (!obj[k]) obj[k] = {};
+  for (const k of ['quests', 'bosses', 'upgrades', 'achievements', 'consumables', 'codes']) if (!obj[k]) obj[k] = {};
   if (!obj.blueprints) obj.blueprints = base.blueprints;
   if (!obj.enchants) obj.enchants = [];
   obj.items = obj.items.filter((it) => it && BLUEPRINTS[it.bp] && MATS[it.mat]);
@@ -831,6 +831,22 @@ export function buyTool(s, kind, st) {
 }
 export function shopPrice(s, entry) { return entry.kind === 'item' ? CONSUMABLES[entry.id].price : entry.price; }
 
+// ---------- codes ----------
+export function redeemCode(s, text, st) {
+  const key = String(text || '').trim().toUpperCase().replace(/\s+/g, '');
+  if (!key) return { ok: false, msg: 'Enter a code.' };
+  const c = CODES[key];
+  if (!c) return { ok: false, msg: 'That code is not valid.' };
+  if (!s.codes) s.codes = {};
+  if (s.codes[key]) return { ok: false, msg: 'You have already redeemed that code on this save.' };
+  s.codes[key] = Date.now();
+  for (const k in c.mats || {}) addMat(s, k, c.mats[k], 0, st);
+  for (const k in c.items || {}) s.consumables[k] = (s.consumables[k] || 0) + c.items[k];
+  if (c.gold) s.player.gold += c.gold;
+  if (st) { st.toast(`Code redeemed: ${c.desc}!`, 'rare'); st.burst('rare'); }
+  return { ok: true, msg: `Redeemed: ${c.desc}.` };
+}
+
 // ---------- prestige ----------
 export function legacyPoints(s) {
   const bossesN = Object.keys(s.bosses).filter((b) => ENEMIES[b].boss).length;
@@ -847,6 +863,7 @@ export function rekindle(s) {
   const stats = { ...s.stats }; stats.prestiges = (stats.prestiges || 0) + 1;
   const n = newGame({ lp: s.legacy.lp + gained, spent: s.legacy.spent, perks: s.legacy.perks, count: s.legacy.count + 1, hall: hall.slice(0, 12), everBosses, codex: s.codex, records: s.records, achievements: s.achievements, stats });
   n.settings = { ...s.settings };
+  n.codes = { ...(s.codes || {}) };
   n.smith.level = Math.max(1, Math.floor(s.smith.level / 2));
   if (heir) { n.items.push(heir); n.equipped = heir.uid; }
   n.quests.q13 = { n: 1, done: true, claimed: false };

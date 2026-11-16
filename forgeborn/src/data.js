@@ -68,7 +68,7 @@ export const MATS = {
   moonpetal: { name: 'Moonpetal', kind: 'herb', tier: 3, color: '#cfc8ff', dark: '#5f55b0', desc: 'Glows at night. Core reagent for runes.', src: 'Foraged in the Moonlit Grove.' },
   wispessence: { name: 'Wisp Essence', kind: 'monster', tier: 3, color: '#b8ffef', dark: '#2a9c88', desc: 'Captured light of a forest spirit.', src: 'Dropped by Wisps.' },
   venomsac: { name: 'Venom Sac', kind: 'monster', tier: 3, color: '#9be04a', dark: '#3f6a12', desc: 'Concentrated thornling venom.', src: 'Dropped by Thornlings.' },
-  runetablet: { name: 'Rune Tablet', kind: 'relic', tier: 2, color: '#c9b37a', dark: '#5f4f28', desc: 'Ancient carved runes. Teaches enchantments when studied.', src: 'Found exploring ruins and caves.' },
+  runetablet: { name: 'Rune Tablet', kind: 'relic', tier: 2, color: '#c9b37a', dark: '#5f4f28', desc: 'Ancient carved runes. Teaches enchantments when studied.', src: 'Defeat Bandit Captain Varka in Hollow Cave (60% drop), search the Forgotten Shrine event (40%), ask the Elven Echo (Whispering Wilds), or defeat Elven Sentinels (25%).' },
   ancientgear: { name: 'Ancient Gear', kind: 'relic', tier: 2, color: '#c99a5a', dark: '#5f421f', desc: 'Precision clockwork from a lost age.', src: 'Found exploring ruins, dropped by constructs.' },
   // ---- Tier 4 ----
   voidore: { name: 'Void Ore', kind: 'metal', tier: 4, power: 36, hard: 5, color: '#8f5bff', dark: '#24104f', elem: 'void', pierce: 0.12, desc: 'Ore that swallows light. Cuts through armor.', src: 'Mined at Magma Rift and the Void Rift (needs a Mithril Pickaxe).' },
@@ -583,3 +583,8 @@ for (const id in ENEMIES) {
   const E = ENEMIES[id]; const [h, a] = SPECIAL_SCALE[id] || REGION_SCALE[E.region];
   E.hp = Math.round(E.hp * h); E.atk = Math.round(E.atk * a);
 }
+
+// Redeemable codes (Settings → Redeem a code). Each code works once per save, case-insensitive.
+export const CODES = {
+  RUNESMITH: { desc: '10 Rune Tablets', mats: { runetablet: 10 } },
+};

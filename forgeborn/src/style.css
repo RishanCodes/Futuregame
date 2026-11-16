@@ -599,3 +599,5 @@ select { background: #1a1410; border: 1px solid var(--line-hi); border-radius: v
   .embers { display: none; }
 }
 .vol { width: min(180px, 40vw); accent-color: var(--gold); }
+.code-input { flex: 1; min-width: 0; max-width: 280px; min-height: 42px; padding: 8px 12px; border-radius: var(--r-sm); background: #0e0b09; border: 1px solid var(--line-hi); font-family: var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

@@ -359,6 +359,8 @@ export function SettingsScreen({ onImport, onReset, saveNow }) {
   const [imp, setImp] = useState('');
   const [msg, setMsg] = useState('');
   const [reset, setReset] = useState(0);
+  const [code, setCode] = useState('');
+  const [codeMsg, setCodeMsg] = useState(null);
   const set = (k, v) => store.mutate((d) => { d.settings[k] = v; if (k === 'sound') setSound(v); });
   const toggles = [
     ['combatTiming', 'Combat timing prompts', 'Attack and defense timing in battle. When off, timed actions resolve as average and defense as a normal brace.'],
@@ -372,6 +374,17 @@ export function SettingsScreen({ onImport, onReset, saveNow }) {
       <Section title="Gameplay">
         <div className="list-row"><label htmlFor="set-volume" className="grow"><b>Volume</b><div className="muted small">{Math.round((s.settings.volume == null ? 0.8 : s.settings.volume) * 100)}%</div></label><input id="set-volume" type="range" min="0" max="1" step="0.05" value={s.settings.volume == null ? 0.8 : s.settings.volume} onChange={(e) => { const v = +e.target.value; setVolume(v); store.mutate((d) => { d.settings.volume = v; }); }} onPointerUp={() => sfx.anvil('Perfect')} className="vol" /></div>
         <div className="list">{toggles.map(([k, n, d]) => <label key={k} className="list-row toggle" htmlFor={'set-' + k}><div className="grow"><b>{n}</b><div className="muted small">{d}</div></div><input id={'set-' + k} type="checkbox" checked={!!s.settings[k]} onChange={(e) => set(k, e.target.checked)} /></label>)}</div>
+      </Section>
+      <Section title="Redeem a code">
+        <div className="panel pad">
+          <form className="row gap wrap" onSubmit={(e) => { e.preventDefault(); const r = store.mutate((d, st) => G.redeemCode(d, code, st)); setCodeMsg(r); if (r.ok) { setCode(''); sfx.discover(); } }}>
+            <label htmlFor="code-box" className="sr-only">Code</label>
+            <input id="code-box" className="code-input" value={code} placeholder="Enter a code" autoComplete="off" autoCapitalize="characters" spellCheck="false" onChange={(e) => setCode(e.target.value)} />
+            <button type="submit" className="btn primary" disabled={!code.trim()}>Redeem</button>
+          </form>
+          {codeMsg && <p className={'small ' + (codeMsg.ok ? 'good' : 'bad')}>{codeMsg.msg}</p>}
+          <p className="muted small">Each code works once per save.</p>
+        </div>
       </Section>
       <Section title="Save data">
         <div className="panel pad">
