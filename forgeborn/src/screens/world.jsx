@@ -198,7 +198,7 @@ export default function WorldScreen() {
   const prog = s.world.progress[loc] || 0;
   const deps = s.world.deposits[loc] || [];
   const travel = (id) => { if (id === loc) return; store.mutate((d) => { d.player.loc = id; if (!d.codex.locs[id]) d.codex.locs[id] = 1; }); setEv(null); };
-  const doExplore = () => { const r = store.mutate((d, st) => G.explore(d, loc, st)); sfx.pick(); setEv(r); };
+  const doExplore = () => { const r = store.mutate((d, st) => G.explore(d, loc, st)); sfx.click(); setEv(r); };
   const fight = (enemy, bonus) => { setEv(null); const cb = store.get().battle; if (cb && !cb.over) { nav.go('battle'); return; } store.mutate((d) => startBattle(d, enemy, { loc, bonus })); nav.go('battle'); };
   const startMine = (deposit, mloc, temp) => {
     setEv(null);

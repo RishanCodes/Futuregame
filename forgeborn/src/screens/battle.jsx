@@ -51,6 +51,24 @@ export default function BattleScreen() {
   const [hitFx, setHitFx] = useState(0);
   const logRef = useRef(null);
   const busy = useRef(false);
+  // Sound follows the combat events the engine records.
+  const lastFloat = useRef(b && b.floats.length ? b.floats[b.floats.length - 1].id : 0);
+  useEffect(() => {
+    if (!b) { lastFloat.current = 0; return; }
+    const fresh = b.floats.filter((f) => f.id > lastFloat.current);
+    if (b.floats.length) lastFloat.current = b.floats[b.floats.length - 1].id;
+    fresh.slice(0, 4).forEach((f, i) => setTimeout(() => {
+      const txt = String(f.text);
+      if (f.kind === 'perfect') { if (/BLOCK|DEFLECT/.test(txt)) sfx.block(true); else if (/REBIRTH|UNBROKEN/.test(txt)) sfx.heal(); }
+      else if (f.kind === 'heal') sfx.heal();
+      else if (f.kind === 'miss') { if (/Barrier/.test(txt)) sfx.block(false); else sfx.swing(); }
+      else if (f.who === 'e' && (f.kind === 'dmg' || f.kind === 'crit')) sfx.hit(f.kind === 'crit');
+      else if (f.who === 'p' && (f.kind === 'dmg' || f.kind === 'crit')) { if (b.p.defending) sfx.block(false); sfx.hurt(f.kind === 'crit'); }
+      else if (f.kind === 'status') sfx.discover();
+    }, i * 90));
+  }, [b && b.floats.length && b.floats[b.floats.length - 1].id]);
+  const overRef = useRef(null);
+  useEffect(() => { const o = b && b.over; if (o && o !== overRef.current) { if (o === 'win') sfx.victory(ENEMIES[b.enemyId].boss); else if (o === 'lose') sfx.defeat(); } overRef.current = o || null; }, [b && b.over]);
   useEffect(() => { if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight; }, [b && b.log.length]);
   // Drive the enemy phase.
   useEffect(() => {
@@ -61,7 +79,7 @@ export default function BattleScreen() {
       const cur = store.get().battle; if (!cur || cur.stage !== 'enemy') return;
       const need = C.needsDefense(store.get());
       if (need && store.get().settings.combatTiming) setDefense(need);
-      else { store.mutate((d, st) => C.enemyAction(d, need && !d.settings.combatTiming ? { grade: 'good' } : null, st)); sfx.hit(); }
+      else { store.mutate((d, st) => C.enemyAction(d, need && !d.settings.combatTiming ? { grade: 'good' } : null, st)); }
     }, s.settings.reducedMotion ? 250 : 650);
     return () => { clearTimeout(t); busy.current = false; };
   }, [b && b.stage, b && b.turn, defense]);
@@ -75,9 +93,10 @@ export default function BattleScreen() {
     setMenu(null);
     if (timed && s.settings.combatTiming) { setTiming({ act }); return; }
     store.mutate((d, st) => C.playerAction(d, act, timed ? 1 : null, st));
-    if (act.type !== 'defend' && act.type !== 'item') { setHitFx((n) => n + 1); sfx.hit(); }
+    if (act.type === 'special') sfx.special(); else if (act.type === 'skill' && P.cat === 'staff') sfx.spell(); else if (act.type !== 'defend' && act.type !== 'item' && act.type !== 'swap' && act.type !== 'flee') sfx.swing();
+    if (act.type !== 'defend' && act.type !== 'item') setHitFx((n) => n + 1);
   };
-  const onTiming = (mult) => { const act = timing.act; setTiming(null); store.mutate((d, st) => C.playerAction(d, act, mult, st)); setHitFx((n) => n + 1); sfx.hit(); };
+  const onTiming = (mult) => { const act = timing.act; setTiming(null); if (act.type === 'special') sfx.special(); else if (act.type === 'skill' && P.cat === 'staff') sfx.spell(); store.mutate((d, st) => C.playerAction(d, act, mult, st)); setHitFx((n) => n + 1); };
   const onDefense = (res) => { setDefense(null); store.mutate((d, st) => C.enemyAction(d, res, st)); };
   const close = () => { const res = b.over; store.mutate((d) => C.closeBattle(d)); nav.go(res === 'lose' ? 'world' : 'world'); };
   const L = LOCATIONS[b.ctx.loc] || LOCATIONS.hearth;

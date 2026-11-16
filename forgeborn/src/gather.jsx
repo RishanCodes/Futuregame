@@ -45,14 +45,14 @@ export function MiningGame({ deposit, pickTier, geologist = 0, onFinish, onCance
     const x = (e.clientX - r.left) / r.width * 200; const y = (e.clientY - r.top) / r.height * 200;
     st.cool = 0.16; st.swings--; st.strikes++;
     // pocket first
-    if (st.pocket && Math.hypot(x - st.pocket.x, y - st.pocket.y) < 16) { st.pocketGot = true; st.pocket = null; st.pocketRoll = false; st.msg = 'Rare pocket found!'; sfx.reveal(); st.swings++; st.strikes--; force(); return; }
+    if (st.pocket && Math.hypot(x - st.pocket.x, y - st.pocket.y) < 16) { st.pocketGot = true; st.pocket = null; st.pocketRoll = false; st.msg = 'Rare pocket found!'; sfx.pocket(); st.swings++; st.strikes--; force(); return; }
     let dmg; let weak = false;
-    if (st.wp && Math.hypot(x - st.wp.x, y - st.wp.y) < 15) { weak = true; dmg = 46 * pick.power * (0.85 + 0.3 * (st.wp.life / st.wp.max)); st.weakHits++; st.wp = null; st.gap = rand(0.1, 0.3); sfx.rock(); st.msg = 'Weak point!'; }
-    else { dmg = 13 * pick.power; sfx.hit(); st.msg = ''; }
+    if (st.wp && Math.hypot(x - st.wp.x, y - st.wp.y) < 15) { weak = true; dmg = 46 * pick.power * (0.85 + 0.3 * (st.wp.life / st.wp.max)); st.weakHits++; st.wp = null; st.gap = rand(0.1, 0.3); sfx.pickStrike(true); st.msg = 'Weak point!'; }
+    else { dmg = 13 * pick.power; sfx.pickStrike(false); st.msg = ''; }
     st.shake = weak ? 0.18 : 0.08;
     for (let k = 0; k < (weak ? 9 : 4); k++) st.chips.push({ x, y, vx: rand(-120, 120), vy: rand(-180, -40), life: rand(0.3, 0.6), c: weak ? M.color : '#7a6a5a' });
     st.dmg += dmg;
-    while (st.dmg >= layerHP && st.layer < deposit.layers) { st.dmg -= layerHP; st.layer++; sfx.clang(); st.msg = st.layer >= deposit.layers ? 'Deposit broken open!' : `Layer ${st.layer} cracked!`; }
+    while (st.dmg >= layerHP && st.layer < deposit.layers) { st.dmg -= layerHP; st.layer++; sfx.layerBreak(st.layer >= deposit.layers); st.msg = st.layer >= deposit.layers ? 'Deposit broken open!' : `Layer ${st.layer} cracked!`; }
     if (st.layer >= deposit.layers || st.swings <= 0) setTimeout(end, 350);
     force();
   };
@@ -123,10 +123,10 @@ export function ForageGame({ table, herbalist = 0, sickle = 0, onFinish }) {
     e.preventDefault(); e.stopPropagation();
     if (st.done) return;
     st.items = st.items.filter((x) => x !== it);
-    if (it.kind === 'thorn') { st.thorns++; st.t = Math.min(dur, st.t + 1); sfx.bad(); st.pops.push({ x: it.x, y: it.y, text: 'Ouch! −1s', life: 0.8, bad: true }); force(); return; }
+    if (it.kind === 'thorn') { st.thorns++; st.t = Math.min(dur, st.t + 1); sfx.thorn(); st.pops.push({ x: it.x, y: it.y, text: 'Ouch! −1s', life: 0.8, bad: true }); force(); return; }
     const n = it.kind === 'glimmer' ? 2 : 1;
     st.picks[it.mat] = (st.picks[it.mat] || 0) + n; st.picked += n;
-    sfx.pick();
+    sfx.pluck(it.kind === 'glimmer');
     st.pops.push({ x: it.x, y: it.y, text: `+${n} ${MATS[it.mat].name}`, life: 0.8 });
     force();
   };

@@ -8,7 +8,7 @@ import * as G from '../engine.js';
 import { useGame, useNav, Modal, Bar, CostList, MatChip, RarityName, GradeName, StatTable, TraitList, WeaponCard, weaponBreakdown, Section, Empty } from '../ui.jsx';
 import { WeaponArt, MatIcon, Icon, EnemyArt, Scene } from '../art.jsx';
 import { STAGE_INFO } from '../qte.jsx';
-import { setSound } from '../sfx.js';
+import { setSound, setVolume, sfx } from '../sfx.js';
 
 // ================= INVENTORY =================
 function WeaponDetail({ s, store, it, onClose }) {
@@ -279,7 +279,7 @@ export function QuestsScreen() {
         <p className="small">{q.desc}</p>
         <Bar v={st.n || 0} max={q.n} color="var(--gold)" small>{Math.min(st.n || 0, q.n)} / {q.n}</Bar>
         <p className="muted small">Reward: {rewardText(q.reward)}</p>
-        {st.done && !st.claimed && <button type="button" className="btn primary small" onClick={() => store.mutate((d, stt) => G.claimQuest(d, q.id, stt))}>Claim reward</button>}
+        {st.done && !st.claimed && <button type="button" className="btn primary small" onClick={() => { sfx.coin(); store.mutate((d, stt) => G.claimQuest(d, q.id, stt)); }}>Claim reward</button>}
         {st.claimed && <span className="good small">Completed</span>}
       </div>
     );
@@ -370,6 +370,7 @@ export function SettingsScreen({ onImport, onReset, saveNow }) {
   return (
     <div className="screen settings">
       <Section title="Gameplay">
+        <div className="list-row"><label htmlFor="set-volume" className="grow"><b>Volume</b><div className="muted small">{Math.round((s.settings.volume == null ? 0.8 : s.settings.volume) * 100)}%</div></label><input id="set-volume" type="range" min="0" max="1" step="0.05" value={s.settings.volume == null ? 0.8 : s.settings.volume} onChange={(e) => { const v = +e.target.value; setVolume(v); store.mutate((d) => { d.settings.volume = v; }); }} onPointerUp={() => sfx.anvil('Perfect')} className="vol" /></div>
         <div className="list">{toggles.map(([k, n, d]) => <label key={k} className="list-row toggle" htmlFor={'set-' + k}><div className="grow"><b>{n}</b><div className="muted small">{d}</div></div><input id={'set-' + k} type="checkbox" checked={!!s.settings[k]} onChange={(e) => set(k, e.target.checked)} /></label>)}</div>
       </Section>
       <Section title="Save data">

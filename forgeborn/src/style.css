@@ -595,3 +595,4 @@ select { background: #1a1410; border: 1px solid var(--line-hi); border-radius: v
   *, *::before, *::after { animation-duration: 0.001s !important; animation-iteration-count: 1 !important; transition-duration: 0.001s !important; }
   .embers { display: none; }
 }
+.vol { width: min(180px, 40vw); accent-color: var(--gold); }

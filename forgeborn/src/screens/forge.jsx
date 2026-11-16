@@ -26,7 +26,7 @@ function Smelter({ s, store }) {
         const main = (s.mats[r.main] || [0, 0, 0])[q];
         const others = { ...r.inputs }; delete others[r.main];
         const maxN = locked ? 0 : Math.min(Math.floor(main / r.inputs[r.main]), ...Object.entries(others).map(([k, n]) => Math.floor(G.matCount(s, k) / n)), r.gold ? Math.floor(s.player.gold / r.gold) : 99);
-        const go = (n) => store.mutate((d, st) => { const made = G.smelt(d, r.id, q, n, st); if (made) { st.toast(`Smelted ${made} ${QUALITY[q]} ${MATS[r.out].name}.`, 'upgrade'); sfx.clang(); } });
+        const go = (n) => store.mutate((d, st) => { const made = G.smelt(d, r.id, q, n, st); if (made) { st.toast(`Smelted ${made} ${QUALITY[q]} ${MATS[r.out].name}.`, 'upgrade'); sfx.smelt(); } });
         return (
           <div key={r.id} className={'list-row ' + (locked ? 'locked' : '')}>
             <MatIcon id={r.out} size={34} q={q} />
@@ -201,7 +201,7 @@ function Session({ s, spec, onDone, onAbandon }) {
   const finishStage = (r) => {
     const rr = { id: stage.id, w: stage.w, ...r };
     const nr = [...results, rr];
-    setResults(nr); setPhase('result');
+    setResults(nr); setPhase('result'); setTimeout(() => sfx.stageDone(r.score), 120);
   };
   const next = () => {
     if (i + 1 >= stages.length) { onDone(results); return; }
@@ -263,7 +263,7 @@ function Reveal({ s, store, item, onAgain }) {
   const R = RARITIES[it.rarity]; const Gr = GRADES[it.grade];
   const cur = G.equippedWeapon(s);
   const gone = !s.items.find((x) => x.uid === item.uid);
-  useEffect(() => { sfx.reveal(); }, []);
+  useEffect(() => { sfx.reveal(it.rarity); }, []);
   return (
     <div className="reveal panel" style={{ '--rc': R.color }}>
       <div className="reveal-burst" />

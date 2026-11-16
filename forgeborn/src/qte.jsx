@@ -2,7 +2,7 @@
 // simulation in refs (independent of React render rate). Inputs are evaluated at the
 // moment of the event by extrapolating from the last simulated frame.
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { sfx } from './sfx.js';
+import { sfx, furnace as furnaceSnd, mana as manaSnd } from './sfx.js';
 import { WeaponArt } from './art.jsx';
 import { ELEMENTS } from './data.js';
 
@@ -94,7 +94,7 @@ export function CircularQTE({ cfg, paused, onDone, recover }) {
     if (g === 'Miss' && recover && !st.recovered) { st.recovered = true; g = 'Poor'; }
     st.results.push(g); st.scores.push(GRADE_PTS[g]); st.r.phase = 'result'; st.r.resT = 0; st.r.hitAng = ang;
     st.grade = g; st.gk++;
-    (g === 'Perfect' ? sfx.perfect : g === 'Miss' ? sfx.miss : g === 'Poor' ? sfx.poor : sfx.good)();
+    sfx.shape(g);
     force();
   };
   useLoop((dt, now) => {
@@ -178,7 +178,7 @@ export function FurnaceQTE({ cfg, paused, onDone }) {
     st.t += dt;
     st.h += ((st.hold ? 1 : 0) - st.h) * Math.min(1, dt * 2.4);
     const drift = (Math.sin(st.t * 1.3) + 0.6 * Math.sin(st.t * 2.9 + 1.1)) * cfg.drift * 70;
-    if (cfg.d >= 2 && st.t > st.gustNext) { st.gust = 0.7; st.gustNext = st.t + rand(4, 7); }
+    if (cfg.d >= 2 && st.t > st.gustNext) { st.gust = 0.7; st.gustNext = st.t + rand(4, 7); sfx.draft(); }
     let gustV = 0; if (st.gust > 0) { st.gust -= dt; gustV = -160 * cfg.drift; }
     const eq = 250 + st.h * 1350;
     const dT = (eq - st.T) * 0.85 + drift + gustV;
@@ -191,11 +191,12 @@ export function FurnaceQTE({ cfg, paused, onDone }) {
     const lo = st.target - cfg.band / 2; const hi = st.target + cfg.band / 2;
     if (st.T >= lo && st.T <= hi) {
       st.inT += dt; st.stabAcc += Math.abs(dT); st.stabN += dt; st.streak += dt;
-      if (st.streak >= 3) { st.perfects++; st.streak -= 3; sfx.good(); }
+      if (st.streak >= 3) { st.perfects++; st.streak -= 3; sfx.heatTick(); }
     } else { st.streak = 0; if (st.T > hi + 120) st.over += dt; if (st.T < lo - 120) st.under += dt; }
+    furnaceSnd.update(st.h, st.hold, st.T > st.target + cfg.band / 2 + 120, dt);
     if (st.t > (st.trace.length + 1) * 0.12) { st.trace.push([st.t, st.T, st.target]); if (st.trace.length > 400) st.trace.shift(); }
     if (st.t >= cfg.duration) {
-      st.done = true;
+      st.done = true; furnaceSnd.stop();
       const inFrac = st.inT / cfg.duration;
       const stab = st.stabN > 0 ? clamp(1 - (st.stabAcc / st.stabN) / 420, 0, 1) : 0;
       const ext = (st.over + st.under) / cfg.duration;
@@ -206,7 +207,8 @@ export function FurnaceQTE({ cfg, paused, onDone }) {
   }, !paused);
   const setHold = (v) => { st.hold = v; };
   useKey((e, down) => { if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); if (!paused) setHold(down); } }, true);
-  useEffect(() => { if (paused) st.hold = false; }, [paused]);
+  useEffect(() => { if (paused) { st.hold = false; furnaceSnd.stop(); } else if (!st.done) furnaceSnd.start(); }, [paused]);
+  useEffect(() => () => furnaceSnd.stop(), []);
   const lo = st.target - cfg.band / 2; const hi = st.target + cfg.band / 2;
   const inBand = st.T >= lo && st.T <= hi;
   const y = (T) => 190 - clamp((T - 150) / 1400, 0, 1) * 180;
@@ -287,7 +289,7 @@ export function HammerQTE({ cfg, paused, onDone, spec }) {
     x.res = g; const pt = pts[x.p];
     if (g === 'Miss' || g === 'Poor') { st.combo = 0; } else { st.combo++; st.maxCombo = Math.max(st.maxCombo, st.combo); }
     if (g !== 'Miss') { st.dents.push({ x: pt[0] + rand(-2, 2), y: pt[1] + rand(-2, 2) }); for (let k = 0; k < (g === 'Perfect' ? 10 : 5); k++) st.sparks.push({ x: pt[0], y: pt[1], vx: rand(-40, 40), vy: rand(-60, -10), life: rand(0.3, 0.6) }); }
-    (g === 'Perfect' ? sfx.perfect : g === 'Miss' ? sfx.miss : sfx.strike)();
+    sfx.anvil(g, x.type === 'heavy', (pt[0] - 50) / 60);
     pop(g, x.p);
   };
   const gradeAt = (x, time) => {
@@ -333,9 +335,9 @@ export function HammerQTE({ cfg, paused, onDone, spec }) {
     const act = st.seq.filter((x) => !x.res && x.p === pi && time >= x.t0 && time <= x.t0 + x.w);
     const decoy = act.find((x) => x.type === 'decoy');
     const target = act.find((x) => x.type !== 'decoy');
-    if (decoy && !target) { decoy.res = 'Struck'; st.wrong++; st.combo = 0; sfx.bad(); pop('Miss', pi); return; }
-    if (!target) { st.wrong++; st.combo = 0; sfx.bad(); st.grade = 'Wrong'; st.gk++; st.gp = pi; return; }
-    if (target.type === 'heavy') { st.hold = { x: target, charge: 0, fullAt: time + 0.5 }; sfx.pick(); return; }
+    if (decoy && !target) { decoy.res = 'Struck'; st.wrong++; st.combo = 0; sfx.runeBad(); pop('Miss', pi); return; }
+    if (!target) { st.wrong++; st.combo = 0; sfx.wrong(); st.grade = 'Wrong'; st.gk++; st.gp = pi; return; }
+    if (target.type === 'heavy') { st.hold = { x: target, charge: 0, fullAt: time + 0.5 }; sfx.hold(); return; }
     resolveStrike(target, gradeAt(target, time));
   };
   useKey((e, down) => {
@@ -412,8 +414,8 @@ export function QuenchQTE({ cfg, paused, onDone, spec, recover }) {
   const record = (ring, g) => {
     if (g === 'Miss' && recover && !st.recovered) { st.recovered = true; g = 'Poor'; }
     ring.res = g; st.results.push(g); st.grade = g; st.gk++;
-    if (g !== 'Miss') { sfx.steam(); for (let k = 0; k < (g === 'Perfect' ? 26 : 12); k++) st.steam.push({ a: rand(0, TAU), r: R0, v: rand(0.1, 0.35), life: rand(0.6, 1.2) }); }
-    (g === 'Perfect' ? sfx.perfect : g === 'Miss' ? sfx.miss : sfx.good)();
+    sfx.quench(g);
+    if (g !== 'Miss') { for (let k = 0; k < (g === 'Perfect' ? 26 : 12); k++) st.steam.push({ a: rand(0, TAU), r: R0, v: rand(0.1, 0.35), life: rand(0.6, 1.2) }); }
   };
   const totalRings = useRef(0);
   useLoop((dt, now) => {
@@ -551,8 +553,8 @@ export function RunesQTE({ cfg, paused, onDone }) {
     const p = toLocal(e); if (!p) return;
     const k = nodeAt(p); const g = st.glyph;
     const lastNode = g.order[g.prog - 1];
-    if (k === lastNode) { st.drag = true; st.ptr = p; try { svgRef.current.setPointerCapture(e.pointerId); } catch (_) { /* ignore */ } sfx.rune(); }
-    else if (k >= 0) { g.invalid++; st.flash = 0.3; st.lastWrong = k; sfx.bad(); }
+    if (k === lastNode) { st.drag = true; st.ptr = p; try { svgRef.current.setPointerCapture(e.pointerId); } catch (_) { /* ignore */ } sfx.runeGrab(); }
+    else if (k >= 0) { g.invalid++; st.flash = 0.3; st.lastWrong = k; sfx.runeBad(); }
   };
   const move = (e) => {
     if (!st.drag || paused || st.done) return;
@@ -561,15 +563,15 @@ export function RunesQTE({ cfg, paused, onDone }) {
     if (k < 0) { st.lastWrong = -1; return; }
     const expected = g.order[g.prog];
     if (k === expected) {
-      g.prog++; sfx.rune(); st.lastWrong = -1;
+      sfx.rune(g.prog + st.gi * 2); g.prog++; st.lastWrong = -1;
       if (g.prog >= g.order.length) {
-        const sc = glyphScore(g, st.gt); st.scores.push(sc); if (g.invalid === 0 && g.breaks === 0) { st.perfects++; sfx.perfect(); }
+        const sc = glyphScore(g, st.gt); st.scores.push(sc); if (g.invalid === 0 && g.breaks === 0) st.perfects++; sfx.glyph(g.invalid === 0 && g.breaks === 0);
         st.drag = false; st.gi++; st.gt = 0;
         if (st.gi >= cfg.glyphs) finish(); else { st.glyph = makeGlyph(); st.show = cfg.memory ? 2.0 : Infinity; }
       }
-    } else if (!g.order.slice(0, g.prog).includes(k) && k !== st.lastWrong) { g.invalid++; st.lastWrong = k; st.flash = 0.3; sfx.bad(); }
+    } else if (!g.order.slice(0, g.prog).includes(k) && k !== st.lastWrong) { g.invalid++; st.lastWrong = k; st.flash = 0.3; sfx.runeBad(); }
   };
-  const up = () => { if (st.drag && !st.done) { st.drag = false; const g = st.glyph; if (g.prog < g.order.length) { g.breaks++; st.msg = 'The rune line broke. Resume from the last lit node.'; } } };
+  const up = () => { if (st.drag && !st.done) { st.drag = false; const g = st.glyph; if (g.prog < g.order.length) { g.breaks++; sfx.runeBreak(); st.msg = 'The rune line broke. Resume from the last lit node.'; } } };
   const g = st.glyph;
   const color = ELEMENTS[cfg.elem] ? ELEMENTS[cfg.elem].color : '#9ff0ff';
   const showGuide = st.show > 0;
@@ -622,7 +624,7 @@ export function ManaQTE({ cfg, paused, onDone }) {
     const kspd = 0.9 * dt;
     if (st.keys.KeyW) st.cA = clamp(st.cA + kspd, 0, 1); if (st.keys.KeyS) st.cA = clamp(st.cA - kspd, 0, 1);
     if (st.keys.ArrowUp) st.cE = clamp(st.cE + kspd, 0, 1); if (st.keys.ArrowDown) st.cE = clamp(st.cE - kspd, 0, 1);
-    if (st.t > st.surgeNext) { st.surge = 0.8; st.surgeK = Math.random() < 0.5 ? 'A' : 'E'; st.surgeD = Math.random() < 0.5 ? 1 : -1; st.surgeNext = st.t + rand(3, 5); }
+    if (st.t > st.surgeNext) { sfx.surge(); st.surge = 0.8; st.surgeK = Math.random() < 0.5 ? 'A' : 'E'; st.surgeD = Math.random() < 0.5 ? 1 : -1; st.surgeNext = st.t + rand(3, 5); }
     let sA = 0; let sE = 0;
     if (st.surge > 0) { st.surge -= dt; if (st.surgeK === 'A') sA = 0.5 * st.surgeD * cfg.drift; else sE = 0.5 * st.surgeD * cfg.drift; }
     const nA = (Math.sin(st.t * 2.1) * 0.6 + Math.sin(st.t * 4.7 + 1) * 0.4) * cfg.drift * 0.35;
@@ -631,11 +633,13 @@ export function ManaQTE({ cfg, paused, onDone }) {
     const dE = (st.cE - st.E) * 1.6 + nE + sE + cfg.coupling * (st.A - 0.5) * 1.2;
     st.A = clamp(st.A + dA * dt, 0, 1); st.E = clamp(st.E + dE * dt, 0, 1);
     const inA = Math.abs(st.A - bandC(st.t, 0)) <= cfg.band / 2; const inE = Math.abs(st.E - bandC(st.t, 1)) <= cfg.band / 2;
-    if (inA && inE) { st.inBoth += dt; st.streak += dt; if (st.streak >= 3) { st.perfects++; st.streak -= 3; sfx.good(); } } else st.streak = 0;
+    if (inA && inE) { st.inBoth += dt; st.streak += dt; if (st.streak >= 3) { st.perfects++; st.streak -= 3; sfx.manaPulse(); } } else st.streak = 0;
+    manaSnd.update(st.A, st.E, inA, inE);
     if (inA || inE) st.inOne += dt;
     st.jitter += (Math.abs(dA) + Math.abs(dE)) * dt;
     if (st.t >= cfg.duration) {
       st.done = true;
+      manaSnd.stop();
       const both = st.inBoth / cfg.duration; const one = st.inOne / cfg.duration;
       const stab = clamp(1 - st.jitter / cfg.duration / 0.9, 0, 1);
       const score = clamp(100 * (0.72 * Math.min(1, both * 1.1) + 0.14 * one + 0.14 * stab * Math.min(1, both * 2)), 0, 100);
@@ -643,6 +647,8 @@ export function ManaQTE({ cfg, paused, onDone }) {
     }
     force();
   }, !paused);
+  useEffect(() => { if (paused) manaSnd.stop(); else if (!st.done) manaSnd.start(); }, [paused]);
+  useEffect(() => () => manaSnd.stop(), []);
   useKey((e, d) => { if (['KeyW', 'KeyS', 'ArrowUp', 'ArrowDown'].includes(e.code)) { e.preventDefault(); st.keys[e.code] = d && !paused; } }, true);
   const drag = (which) => {
     const onMove = (e, el) => { const r = el.getBoundingClientRect(); const v = clamp(1 - (e.clientY - r.top) / r.height, 0, 1); if (which === 'A') st.cA = v; else st.cE = v; };
@@ -695,7 +701,7 @@ export function AttackTiming({ assist = 1, speed = 1, onDone, paused }) {
     if (st.done) return; st.done = true;
     const d = pos == null ? 9 : Math.abs(pos - st.sweet);
     const res = d <= sw ? { mult: 1.3, label: 'Perfect' } : d <= gw ? { mult: 1.12, label: 'Good' } : pos == null ? { mult: 0.85, label: 'Late' } : { mult: 0.92, label: 'Off' };
-    st.res = res; (res.label === 'Perfect' ? sfx.perfect : res.label === 'Good' ? sfx.good : sfx.poor)();
+    st.res = res; sfx.swing();
     force(); setTimeout(() => onDone(res.mult, res.label), 380);
   };
   useLoop((dt, now) => { st.last = now; if (st.done) return; st.t += dt; if (st.t >= st.dur) finish(null); force(); }, !paused);
@@ -724,7 +730,7 @@ export function DefenseTiming({ assist = 1, heavy, mode, onDone, paused }) {
     if (st.done) return; st.done = true;
     const d = t == null ? 9 : Math.abs(t - st.dur);
     const grade = d <= pw ? 'perfect' : d <= gw ? 'good' : 'miss';
-    st.res = grade; (grade === 'perfect' ? sfx.perfect : grade === 'good' ? sfx.good : sfx.miss)();
+    st.res = grade;
     force(); setTimeout(() => onDone({ grade }), 320);
   };
   useLoop((dt, now) => { st.last = now; if (st.done) return; st.t += dt; if (st.t > st.dur + gw + 0.05) finish(null); force(); }, !paused);

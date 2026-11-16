@@ -8,7 +8,7 @@ import WorldScreen from './screens/world.jsx';
 import ForgeScreen from './screens/forge.jsx';
 import BattleScreen from './screens/battle.jsx';
 import { InventoryScreen, CharacterScreen, UpgradesScreen, CodexScreen, QuestsScreen, LegacyScreen, SettingsScreen } from './screens/others.jsx';
-import { setSound, sfx } from './sfx.js';
+import { setSound, setVolume, sfx } from './sfx.js';
 
 const TABS = [
   { id: 'world', name: 'World', icon: 'world', primary: true },
@@ -37,7 +37,8 @@ function Bursts({ store, reduced }) {
   useEffect(() => store.subscribe(() => {
     if (!store.fx.length) return;
     const add = store.fx.splice(0);
-    for (const f of add) { if (f.kind === 'level') sfx.level(); }
+    const k = add.map((f) => f.kind);
+    if (k.includes('level')) sfx.level(); else if (k.includes('upgrade')) sfx.upgrade(); else if (k.some((x) => ['rare', 'region', 'quest'].includes(x))) sfx.discover();
     if (reduced) return;
     setList((l) => [...l, ...add].slice(-4));
     for (const f of add) setTimeout(() => setList((l) => l.filter((x) => x.id !== f.id)), 1600);
@@ -73,6 +74,7 @@ function Shell({ store }) {
   const [mq, setMq] = useState(false);
   useEffect(() => { try { const m = window.matchMedia('(prefers-reduced-motion: reduce)'); setMq(m.matches); const f = (e) => setMq(e.matches); m.addEventListener('change', f); return () => m.removeEventListener('change', f); } catch (e) { return undefined; } }, []);
   useEffect(() => { setSound(s.settings.sound); }, [s.settings.sound]);
+  useEffect(() => { setVolume(s.settings.volume == null ? 0.8 : s.settings.volume); }, [s.settings.volume]);
   const reduced = s.settings.reducedMotion || mq;
   const nav = useMemo(() => ({ go: (t) => { setTab(t); setMore(false); try { window.scrollTo(0, 0); } catch (e) { /* ignore */ } } }), []);
   const P = G.playerStats(s);
