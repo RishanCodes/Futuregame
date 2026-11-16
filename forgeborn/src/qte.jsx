@@ -723,29 +723,45 @@ export function AttackTiming({ assist = 1, speed = 1, onDone, paused }) {
 export function DefenseTiming({ assist = 1, heavy, mode, onDone, paused }) {
   const force = useForce();
   const S = useRef(null);
-  if (!S.current) S.current = { t: 0, dur: heavy ? 1.05 : 0.85, done: false, last: performance.now(), res: null };
+  // lead: a short wind-up where the strike is visible but not yet moving, so the prompt never starts mid-swing.
+  if (!S.current) S.current = { t: 0, lead: 0.45, dur: heavy ? 1.55 : 1.25, done: false, last: performance.now(), res: null };
   const st = S.current;
-  const pw = 0.075 * assist; const gw = 0.17 * assist;
+  const pw = 0.09 * assist; const gw = 0.2 * assist;
   const finish = (t) => {
     if (st.done) return; st.done = true;
     const d = t == null ? 9 : Math.abs(t - st.dur);
     const grade = d <= pw ? 'perfect' : d <= gw ? 'good' : 'miss';
-    st.res = grade;
-    force(); setTimeout(() => onDone({ grade }), 320);
+    st.res = grade; st.hitAt = t;
+    force(); setTimeout(() => onDone({ grade }), 420);
   };
-  useLoop((dt, now) => { st.last = now; if (st.done) return; st.t += dt; if (st.t > st.dur + gw + 0.05) finish(null); force(); }, !paused);
-  const tap = (e) => { if (e) e.preventDefault(); if (st.done || paused) return; const t = st.t + (performance.now() - st.last) / 1000; finish(t < st.dur - 0.35 ? -9 : t); };
+  useLoop((dt, now) => {
+    st.last = now; if (st.done) return;
+    if (st.lead > 0) st.lead -= dt; else st.t += dt;
+    if (st.t > st.dur + gw + 0.05) finish(null);
+    force();
+  }, !paused);
+  const tap = (e) => {
+    if (e) e.preventDefault();
+    if (st.done || paused || st.lead > 0) return; // taps during the wind-up are ignored
+    const t = st.t + (performance.now() - st.last) / 1000;
+    finish(t < st.dur - 0.45 ? -9 : t);
+  };
   useKey((e, d) => { if (d && (e.code === 'Space' || e.code === 'Enter') && !e.repeat) { e.preventDefault(); tap(); } }, true);
-  const p = clamp(st.t / st.dur, 0, 1.2);
+  const p = clamp(st.t / st.dur, 0, 1); // 0 = far right, 1 = touching the shield
+  const sw = heavy ? 44 : 30;
+  // distance the strike covers per second, expressed as a fraction of its travel
+  const zone = (w) => `calc((100% - ${40 + sw}px) * ${w / st.dur})`;
+  const label = st.res ? ({ perfect: mode === 'block' ? 'Perfect Block!' : 'Deflected!', good: mode === 'block' ? 'Blocked' : 'Braced', miss: st.hitAt === -9 ? 'Too early' : 'Too late' })[st.res] : st.lead > 0 ? 'Get ready…' : mode === 'block' ? 'Block!' : 'Brace!';
   return (
-    <div className={'ctiming def ' + (heavy ? 'heavy' : '')} onPointerDown={tap} role="button" aria-label={mode === 'block' ? 'Block now' : 'Dodge now'}>
-      <div className="ct-label">{st.res ? ({ perfect: mode === 'block' ? 'Perfect Block!' : 'Deflected!', good: 'Braced', miss: 'Too slow' })[st.res] : mode === 'block' ? 'Block!' : 'Brace!'}</div>
+    <div className={'ctiming def ' + (heavy ? 'heavy ' : '') + (st.res ? 'res-' + st.res : '')} onPointerDown={tap} role="button" aria-label={mode === 'block' ? 'Block now' : 'Dodge now'}>
+      <div className="ct-label">{label}</div>
       <div className="def-lane">
+        <div className="def-zone good" style={{ width: zone(gw) }} />
+        <div className="def-zone perfect" style={{ width: zone(pw) }} />
         <div className="def-shield" />
-        <div className="def-zone" style={{ width: `${gw * 100 / st.dur * 1.2}%` }} />
-        <div className="def-strike" style={{ right: `${(1 - Math.min(1, p)) * 88}%` }} />
+        <div className="def-strike" style={{ width: sw, left: `calc(40px + (100% - ${40 + sw}px) * ${1 - p})` }} />
       </div>
-      <div className="ct-sub">Tap or Space as the strike reaches your shield</div>
+      <div className="ct-sub">{mode === 'block' ? 'Tap or Space when the strike reaches the gold edge of your shield' : 'Heavy blow incoming: tap or Space as it reaches your shield'}</div>
     </div>
   );
 }

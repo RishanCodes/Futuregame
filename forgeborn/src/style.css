@@ -424,10 +424,13 @@ p { margin: 0 0 0.6em; }
 .ct-mark { position: absolute; top: -4px; bottom: -4px; width: 4px; margin-left: -2px; background: #fff; box-shadow: 0 0 10px #fff; }
 .ct-sub { font-size: 0.82rem; color: var(--dim); }
 .def-lane { position: relative; width: 100%; height: 46px; border-radius: 8px; background: #0a0807; border: 1px solid var(--line-hi); overflow: hidden; }
-.def-shield { position: absolute; left: 4px; top: 4px; bottom: 4px; width: 30px; border-radius: 6px 6px 14px 14px; background: linear-gradient(180deg, #8aa8d8, #3a5a8a); border: 1px solid #c8dcff; }
-.def-zone { position: absolute; left: 34px; top: 0; bottom: 0; background: rgba(255, 210, 90, 0.3); border-right: 1px solid #ffd25a; }
-.def-strike { position: absolute; top: 8px; bottom: 8px; width: 30px; border-radius: 4px; background: linear-gradient(90deg, #ff5a3a, #ffd25a); box-shadow: 0 0 12px #ff6a3a; }
-.ctiming.heavy .def-strike { width: 44px; }
+.def-shield { position: absolute; left: 6px; top: 4px; bottom: 4px; width: 32px; z-index: 1; border-radius: 6px 6px 14px 14px; background: linear-gradient(180deg, #8aa8d8, #3a5a8a); border: 1px solid #c8dcff; }
+.def-zone { position: absolute; left: 40px; top: 0; bottom: 0; }
+.def-zone.good { background: rgba(127, 208, 255, 0.22); }
+.def-zone.perfect { background: rgba(255, 210, 90, 0.55); box-shadow: 1px 0 0 #ffd25a; }
+.ctiming.res-perfect .def-shield { box-shadow: 0 0 18px #ffd25a; border-color: #fff3c0; }
+.ctiming.res-miss .def-lane { border-color: #a04030; }
+.def-strike { position: absolute; top: 8px; bottom: 8px; z-index: 2; border-radius: 4px; background: linear-gradient(90deg, #ff5a3a, #ffd25a); box-shadow: 0 0 12px #ff6a3a; }
 .battle-end { padding: 16px; text-align: center; }
 .battle-end.win h2 { color: var(--gold-hi); } .battle-end.lose h2 { color: var(--bad); }
 .battle-log { padding: 10px 12px; max-height: 240px; overflow-y: auto; font-size: 0.86rem; }
