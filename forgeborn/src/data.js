@@ -587,4 +587,5 @@ for (const id in ENEMIES) {
 // Redeemable codes (Settings → Redeem a code). Each code works once per save, case-insensitive.
 export const CODES = {
   RUNESMITH: { desc: '10 Rune Tablets', mats: { runetablet: 10 } },
+  IRONVEIN: { desc: '100 Iron Ore', mats: { iron: 100 } },
 };
