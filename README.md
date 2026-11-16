@@ -1,3 +1,13 @@
+# Futuregame
+
+Games in this repository:
+
+- **FORGEBORN: Legacy of the Forge** (`forgeborn/`): incremental blacksmith RPG. Play `forgeborn/dist/forgeborn.html`.
+- **PIXEL QUEST** (`pixelquest/`): 2D pixel-art open-world RPG.
+- **SHATTERPOINT** (below): 3D arena fighting game.
+
+---
+
 # SHATTERPOINT 1.0
 
 A 3D futuristic arena fighting game with action-RPG progression that runs in the browser on PC and mobile. It's built with Three.js (r128) and vanilla JavaScript. It has no build step, needs no server, and loads no assets. Every character, weapon, arena and sound is generated procedurally.
