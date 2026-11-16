@@ -1,6 +1,6 @@
 // FORGEBORN — turn-based combat engine. Operates on s.battle inside store.mutate.
 import { ENEMIES, MOVES, SKILLS, CONSUMABLES, ELEMENTS, REGIONS, LOCATIONS, MATS, CATEGORIES } from './data.js';
-import { playerStats, rnd, ri, pick, clamp, goldGain, gainXP, gainMastery, addMat, track, unlockRegion, hasPassive, tal, ngScale, getItem, equip } from './engine.js';
+import { REGION_GATE, playerStats, rnd, ri, pick, clamp, goldGain, gainXP, gainMastery, addMat, track, unlockRegion, hasPassive, tal, ngScale, getItem, equip } from './engine.js';
 
 export const STATUS_INFO = {
   burn: { name: 'Burn', color: '#ff7a2e', desc: 'Takes fire damage each turn. Stacks to 3.' },
@@ -486,7 +486,7 @@ export function endBattle(s, result, st) {
       const first = !s.bosses[b.enemyId];
       s.bosses[b.enemyId] = (s.bosses[b.enemyId] || 0) + 1;
       if (first && E.boss) {
-        const next = { grimjaw: 'ironspine', korrath: 'wilds', sylvara: 'ashen', pyraxis: 'astral' }[b.enemyId];
+        const next = REGION_GATE[b.enemyId];
         if (next) { unlockRegion(s, next, st); rw.unlocks.push('Region: ' + ({ ironspine: 'Ironspine Highlands', wilds: 'Whispering Wilds', ashen: 'Ashen Wastes', astral: 'Astral Expanse' })[next]); }
         if (st) st.burst('boss');
       }

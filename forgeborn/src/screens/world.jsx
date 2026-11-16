@@ -15,8 +15,12 @@ const BLOBS = {
   ashen: 'M650 470 Q720 418 860 405 Q985 418 992 520 Q992 622 880 632 Q720 632 660 582 Q618 520 650 470 Z',
   astral: 'M740 36 Q820 -2 942 16 Q1000 60 992 180 Q982 272 880 282 Q780 282 750 200 Q718 110 740 36 Z',
 };
-const LABEL = { emberfall: [200, 600], ironspine: [210, 300], wilds: [620, 440], ashen: [820, 590], astral: [860, 272] };
-const BOSS_OF = { ironspine: 'Grimjaw', wilds: 'Korrath', ashen: 'Sylvara', astral: 'Pyraxis' };
+// Region names sit in empty space: centred in a sealed region (no locations shown yet),
+// and at the region's edge once open so they never cover location names.
+const LABEL_LOCKED = { emberfall: [200, 600], ironspine: [215, 170], wilds: [620, 300], ashen: [820, 525], astral: [865, 150] };
+const LABEL_OPEN = { emberfall: [200, 600], ironspine: [215, 324], wilds: [600, 484], ashen: [760, 628], astral: [870, 304] };
+const labelAt = (r, open) => (open ? LABEL_OPEN : LABEL_LOCKED)[r];
+const BOSS_OF = { ironspine: 'Grimjaw (Emberfall)', wilds: 'Korrath (Ironspine)', ashen: 'Sylvara (Whispering Wilds)', astral: 'Pyraxis (Ashen Wastes)' };
 
 function MapDecor({ region }) {
   switch (region) {
@@ -48,7 +52,7 @@ function WorldMap({ s, onPick }) {
           <g key={r}>
             <path d={BLOBS[r]} fill={REGIONS[r].color} opacity={open ? 0.28 : 0.08} stroke={REGIONS[r].color} strokeOpacity={open ? 0.8 : 0.3} strokeWidth="2" />
             {open ? <MapDecor region={r} /> : <path d={BLOBS[r]} fill="url(#fog)" opacity="0.9" />}
-            {!open && <g filter="url(#fogblur)" opacity="0.5">{[0, 1, 2].map((i) => <ellipse key={i} cx={LABEL[r][0] + (i - 1) * 70} cy={LABEL[r][1] - 90 + i * 30} rx="80" ry="26" fill="#3a3040" />)}</g>}
+            {!open && <g filter="url(#fogblur)" opacity="0.5">{[0, 1, 2].map((i) => <ellipse key={i} cx={labelAt(r, false)[0] + (i - 1) * 70} cy={labelAt(r, false)[1] - 30 + i * 30} rx="80" ry="26" fill="#3a3040" />)}</g>}
           </g>
         );
       })}
@@ -56,8 +60,8 @@ function WorldMap({ s, onPick }) {
         const open = G.regionUnlocked(s, r);
         return (
           <g key={'l' + r} pointerEvents="none">
-            <text x={LABEL[r][0]} y={LABEL[r][1]} textAnchor="middle" className={'map-region ' + (open ? '' : 'locked')}>{REGIONS[r].name}</text>
-            {!open && <text x={LABEL[r][0]} y={LABEL[r][1] + 22} textAnchor="middle" className="map-sealed">Sealed · defeat {BOSS_OF[r]}</text>}
+            <text x={labelAt(r, open)[0]} y={labelAt(r, open)[1]} textAnchor="middle" className={'map-region ' + (open ? '' : 'locked')}>{REGIONS[r].name}</text>
+            {!open && <text x={labelAt(r, open)[0]} y={labelAt(r, open)[1] + 22} textAnchor="middle" className="map-sealed">Sealed · defeat {BOSS_OF[r]}</text>}
           </g>
         );
       })}

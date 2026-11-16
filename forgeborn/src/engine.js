@@ -93,6 +93,7 @@ export function migrate(obj) {
   if (obj.equipped && !obj.items.find((i) => i.uid === obj.equipped)) obj.equipped = null;
   if (!LOCATIONS[obj.player.loc]) obj.player.loc = 'hearth';
   if (obj.battle && (!obj.battle.e || !ENEMIES[obj.battle.enemyId])) obj.battle = null;
+  syncRegions(obj);
   obj.v = SAVE_VERSION;
   return obj;
 }
@@ -557,6 +558,12 @@ export function playerStats(s, weaponOverride) {
 }
 
 // ---------- world ----------
+// Which boss opens which region. A defeated boss always guarantees its region is open,
+// so a save can never be stuck with a beaten boss and a sealed region.
+export const REGION_GATE = { grimjaw: 'ironspine', korrath: 'wilds', sylvara: 'ashen', pyraxis: 'astral' };
+export function syncRegions(s, st) {
+  for (const boss in REGION_GATE) if (s.bosses[boss] && !s.world.regions.includes(REGION_GATE[boss])) unlockRegion(s, REGION_GATE[boss], st);
+}
 export function locVisible(s, id) { const L = LOCATIONS[id]; return s.world.regions.includes(L.region) && !!s.world.seen[id]; }
 export function regionUnlocked(s, r) { return s.world.regions.includes(r); }
 export function unlockRegion(s, r, st) {
@@ -809,6 +816,7 @@ function checkProgress(s, st) {
     else ok = (s.stats[a.stat] || 0) >= a.n;
     if (ok) { s.achievements[a.id] = Date.now(); if (st) { st.toast(`Achievement unlocked: ${a.name}`, 'achieve'); } }
   }
+  syncRegions(s, st);
   if (s.bosses.sovereign && !s.world.seen.sanctum) { s.world.seen.sanctum = true; if (st) st.toast('A hidden light flickers above the Observatory: the Echo Sanctum.', 'discover'); }
 }
 
